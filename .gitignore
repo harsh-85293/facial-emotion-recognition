@@ -104,11 +104,14 @@ logs/
 demo_*.jpg
 demo_*.png
 
-# images from analysis
+# Images from analysis
 data_analysis/*.png
 data_analysis/*.jpg
 
-# Git will ignore all model files except the one we explicitly whitelist:
+# Ignore all model files by default…
 models/*.h5
 models/*.keras
-!models/emotion_model.h5
+
+# …but whitelist the actual trained model files:
+!models/best_model.h5
+!models/emotion_recognition_model.h5
