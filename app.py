@@ -186,6 +186,13 @@ def main():
     # Sidebar
     st.sidebar.title("🎛️ Controls")
     
+    # Model selection for testing
+    model_choice = st.sidebar.selectbox(
+        "🤖 Model Selection",
+        ["best_model.h5", "emotion_recognition_model.h5"],
+        help="Choose which model to use for testing"
+    )
+    
     # Load model
     model = load_model(f'models/{model_choice}')
     if model is None:
@@ -200,13 +207,6 @@ def main():
     
     # Debug mode
     debug_mode = st.sidebar.checkbox("🔧 Debug Mode", help="Show raw probabilities and model input")
-    
-    # Model selection for testing
-    model_choice = st.sidebar.selectbox(
-        "🤖 Model Selection",
-        ["best_model.h5", "emotion_recognition_model.h5"],
-        help="Choose which model to use for testing"
-    )
     
     if mode == "📹 Real-time Webcam":
         real_time_mode(model, debug_mode)
