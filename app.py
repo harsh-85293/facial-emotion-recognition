@@ -199,14 +199,17 @@ def main():
         ["📹 Real-time Webcam", "📁 Upload Image", "📊 Model Information"]
     )
     
+    # Debug mode
+    debug_mode = st.sidebar.checkbox("🔧 Debug Mode", help="Show raw probabilities and model input")
+    
     if mode == "📹 Real-time Webcam":
-        real_time_mode(model)
+        real_time_mode(model, debug_mode)
     elif mode == "📁 Upload Image":
-        upload_mode(model)
+        upload_mode(model, debug_mode)
     elif mode == "📊 Model Information":
         model_info_mode()
 
-def real_time_mode(model):
+def real_time_mode(model, debug_mode=False):
     """
     Real-time webcam emotion recognition using Streamlit's browser camera
     """
@@ -248,6 +251,19 @@ def real_time_mode(model):
                 
                 # Predict emotion
                 prediction = model.predict_emotion(processed_face)
+                
+                # Debug: Print raw probabilities
+                if debug_mode:
+                    st.write("🔍 **Debug - Raw Probabilities:**")
+                    emotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+                    for i, prob in enumerate(prediction['probabilities']):
+                        st.write(f"{emotions[i]}: {prob:.4f}")
+                    
+                    # Show what the model actually sees
+                    st.write("🔍 **Model Input (48x48 grayscale):**")
+                    processed_display = processed_face[0, :, :, 0]  # Remove batch and channel dims
+                    st.image(processed_display, caption="What the model sees", use_column_width=True)
+                    st.write("---")
                 
                 # Filter by confidence threshold
                 if prediction['confidence'] >= confidence_threshold:
@@ -303,7 +319,7 @@ def real_time_mode(model):
                 st.warning("⚠️ No emotions detected above the confidence threshold.")
                 st.info("💡 Try adjusting the confidence threshold or repositioning your face.")
 
-def upload_mode(model):
+def upload_mode(model, debug_mode=False):
     """
     Upload image for emotion recognition
     """
@@ -345,6 +361,20 @@ def upload_mode(model):
                 
                 # Predict emotion
                 prediction = model.predict_emotion(processed_face)
+                
+                # Debug: Print raw probabilities
+                if debug_mode:
+                    st.write("🔍 **Debug - Raw Probabilities:**")
+                    emotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+                    for i, prob in enumerate(prediction['probabilities']):
+                        st.write(f"{emotions[i]}: {prob:.4f}")
+                    
+                    # Show what the model actually sees
+                    st.write("🔍 **Model Input (48x48 grayscale):**")
+                    processed_display = processed_face[0, :, :, 0]  # Remove batch and channel dims
+                    st.image(processed_display, caption="What the model sees", use_column_width=True)
+                    st.write("---")
+                
                 predictions.append(prediction)
             
             # Display results
