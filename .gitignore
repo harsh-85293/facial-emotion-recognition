@@ -1,8 +1,10 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# C extensions
 .Python
 build/
 develop-eggs/
@@ -22,20 +24,21 @@ wheels/
 MANIFEST
 
 # Virtual environments
+.venv/
 venv/
 env/
 ENV/
 env.bak/
 venv.bak/
 
-# IDE
+# IDEs and editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# Operating systems
 .DS_Store
 .DS_Store?
 ._*
@@ -69,12 +72,6 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -94,15 +91,24 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Project specific
+# ---------------------------------------------------------------
+# Project-specific
+# ---------------------------------------------------------------
+
+# Data and processed outputs
 data/fer2013.csv
-models/*.h5
-models/*.keras
-data_analysis/*.png
-data_analysis/*.jpg
 processed_images/
 reports/
 logs/
 *.log
 demo_*.jpg
-demo_*.png 
+demo_*.png
+
+# images from analysis
+data_analysis/*.png
+data_analysis/*.jpg
+
+# Git will ignore all model files except the one we explicitly whitelist:
+models/*.h5
+models/*.keras
+!models/emotion_model.h5
