@@ -62,13 +62,27 @@ def load_model():
     """
     model_path = 'models/emotion_recognition_model.h5'
     
-    if os.path.exists(model_path):
+    try:
+        if os.path.exists(model_path):
+            model = EmotionCNN()
+            model.load_model(model_path)
+            st.success("✅ Model loaded successfully!")
+            return model
+        else:
+            st.warning("⚠️ Model file not found. Using demo mode with sample predictions.")
+            # Create a dummy model for demo purposes
+            model = EmotionCNN()
+            model.build_model()
+            model.compile_model()
+            return model
+    except Exception as e:
+        st.error(f"❌ Error loading model: {str(e)}")
+        st.info("Using demo mode with sample predictions.")
+        # Create a dummy model for demo purposes
         model = EmotionCNN()
-        model.load_model(model_path)
+        model.build_model()
+        model.compile_model()
         return model
-    else:
-        st.error("Model file not found. Please train the model first using `python train_model.py`")
-        return None
 
 def preprocess_face_image(image):
     """
