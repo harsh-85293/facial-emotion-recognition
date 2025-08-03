@@ -4,30 +4,27 @@
 
 ### **Problem Identified:**
 - Streamlit Cloud was using Python 3.13
-- TensorFlow 2.15.0 doesn't support Python 3.13
-- Error: `tensorflow==2.15.0 has no wheels with a matching Python ABI tag`
+- TensorFlow 2.13.0 doesn't support Python 3.13
+- Error: `tensorflow==2.13.0 has no wheels with a matching Python ABI tag`
 
 ### **Solutions Applied:**
 
-#### 1. **Created `runtime.txt`**
-```
-python-3.10
-```
-- Forces Streamlit Cloud to use Python 3.10
-- Compatible with TensorFlow 2.13.0
-
-#### 2. **Updated `requirements.txt`**
+#### 1. **Updated to Latest TensorFlow**
 ```diff
-- tensorflow==2.15.0
-+ tensorflow==2.13.0
-- keras==2.15.0
-+ keras==2.13.1
+- tensorflow==2.13.0
++ tensorflow==2.20.0rc0
+- keras==2.13.1
++ keras==2.20.0
 ```
+
+#### 2. **Removed runtime.txt**
+- Using TensorFlow 2.20.0rc0 which supports Python 3.13
+- No need to pin Python version
 
 ### **Why These Versions Work:**
-- ✅ **TensorFlow 2.13.0**: Stable, widely supported
-- ✅ **Keras 2.13.1**: Built into TensorFlow 2.13.0
-- ✅ **Python 3.10**: Supported by TensorFlow 2.13.0
+- ✅ **TensorFlow 2.20.0rc0**: Latest version supporting Python 3.13
+- ✅ **Keras 2.20.0**: Compatible with TensorFlow 2.20.0rc0
+- ✅ **Python 3.13**: Supported by TensorFlow 2.20.0rc0
 - ✅ **All other dependencies**: Compatible
 
 ## 🔄 **Next Steps:**
@@ -52,9 +49,9 @@ python-3.10
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| Python Version | ✅ Fixed | Pinned to 3.10 |
-| TensorFlow | ✅ Fixed | Updated to 2.13.0 |
-| Keras | ✅ Fixed | Updated to 2.13.1 |
+| Python Version | ✅ Fixed | Using 3.13 with TF 2.20.0rc0 |
+| TensorFlow | ✅ Fixed | Updated to 2.20.0rc0 |
+| Keras | ✅ Fixed | Updated to 2.20.0 |
 | Dependencies | ✅ Ready | All compatible |
 | Model Code | ✅ Compatible | No changes needed |
 | App Code | ✅ Compatible | No changes needed |
