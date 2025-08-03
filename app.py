@@ -209,6 +209,20 @@ def real_time_mode(model):
     """
     st.header("📹 Real-time Emotion Recognition")
     
+    # Check if we're in a cloud environment
+    import os
+    is_cloud = os.environ.get('STREAMLIT_SERVER_HEADLESS', 'false').lower() == 'true'
+    
+    if is_cloud:
+        st.warning("⚠️ Webcam access is limited in cloud environments.")
+        st.info("💡 Use the 'Upload Image' mode for testing emotion recognition.")
+        
+        # Demo mode for cloud
+        if st.button("🎭 Try Demo Mode", type="primary"):
+            st.success("🎉 Demo mode activated!")
+            st.info("This would show emotion recognition on sample images.")
+            return
+    
     # Camera settings
     col1, col2 = st.columns(2)
     
@@ -223,6 +237,12 @@ def real_time_mode(model):
         st.info("Camera started! Press 'q' to quit.")
         
         cap = cv2.VideoCapture(camera_index)
+        
+        # Check if camera opened successfully
+        if not cap.isOpened():
+            st.error("❌ Cannot access camera. This feature may not work in cloud environments.")
+            st.info("💡 Try the 'Upload Image' mode instead for testing emotion recognition.")
+            return
         
         # Create placeholders for display
         col1, col2 = st.columns([2, 1])
@@ -295,8 +315,11 @@ def real_time_mode(model):
                     break
                     
         finally:
-            cap.release()
-            cv2.destroyAllWindows()
+            try:
+                cap.release()
+                cv2.destroyAllWindows()
+            except:
+                pass  # Ignore errors in cleanup
 
 def upload_mode(model):
     """
