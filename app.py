@@ -60,7 +60,7 @@ def load_model():
     """
     Load the trained emotion recognition model
     """
-    model_path = 'models/emotion_recognition_model.h5'
+    model_path = 'models/best_model.h5'
     
     try:
         if os.path.exists(model_path):
@@ -88,16 +88,19 @@ def preprocess_face_image(image):
     """
     Preprocess face image for emotion recognition
     """
-    # Convert to grayscale
+    # Convert to grayscale (handle both BGR and RGB)
     if len(image.shape) == 3:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        if image.shape[2] == 3:  # Color image
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = image
     else:
         gray = image
     
     # Resize to 48x48
     resized = cv2.resize(gray, (48, 48))
     
-    # Normalize
+    # Normalize to [0, 1] range
     normalized = resized.astype('float32') / 255.0
     
     # Add batch and channel dimensions
