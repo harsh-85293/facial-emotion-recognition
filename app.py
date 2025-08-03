@@ -56,11 +56,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_resource
-def load_model():
+def load_model(model_path='models/best_model.h5'):
     """
     Load the trained emotion recognition model
     """
-    model_path = 'models/best_model.h5'
     
     try:
         if os.path.exists(model_path):
@@ -188,7 +187,7 @@ def main():
     st.sidebar.title("🎛️ Controls")
     
     # Load model
-    model = load_model()
+    model = load_model(f'models/{model_choice}')
     if model is None:
         st.error("Model not available. Please train the model first.")
         return
@@ -201,6 +200,13 @@ def main():
     
     # Debug mode
     debug_mode = st.sidebar.checkbox("🔧 Debug Mode", help="Show raw probabilities and model input")
+    
+    # Model selection for testing
+    model_choice = st.sidebar.selectbox(
+        "🤖 Model Selection",
+        ["best_model.h5", "emotion_recognition_model.h5"],
+        help="Choose which model to use for testing"
+    )
     
     if mode == "📹 Real-time Webcam":
         real_time_mode(model, debug_mode)
@@ -252,17 +258,35 @@ def real_time_mode(model, debug_mode=False):
                 # Predict emotion
                 prediction = model.predict_emotion(processed_face)
                 
-                # Debug: Print raw probabilities
+                # Debug: Print raw probabilities and class mapping
                 if debug_mode:
                     st.write("🔍 **Debug - Raw Probabilities:**")
-                    emotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
-                    for i, prob in enumerate(prediction['probabilities']):
-                        st.write(f"{emotions[i]}: {prob:.4f}")
+                    
+                    # 1) Print the raw predictions
+                    raw_preds = prediction['probabilities']
+                    st.write("🔍 Raw preds:", raw_preds.tolist())
+                    
+                    # 2) Print them alongside class names in order
+                    class_names = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+                    st.write("📊 **Class Mapping Check:**")
+                    for idx, name in enumerate(class_names):
+                        st.write(f"{name:>8} → {raw_preds[idx]*100:5.2f}%")
+                    
+                    # 3) Show the winner
+                    best_idx = np.argmax(raw_preds)
+                    st.write(f"🎯 **Prediction:** {class_names[best_idx]} ({raw_preds[best_idx]*100:.2f}%)")
                     
                     # Show what the model actually sees
                     st.write("🔍 **Model Input (48x48 grayscale):**")
                     processed_display = processed_face[0, :, :, 0]  # Remove batch and channel dims
                     st.image(processed_display, caption="What the model sees", use_column_width=True)
+                    
+                    # Show preprocessing steps
+                    st.write("🔧 **Preprocessing Steps:**")
+                    st.write(f"- Input shape: {face_img.shape}")
+                    st.write(f"- Grayscale shape: {cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY).shape}")
+                    st.write(f"- Resized shape: {cv2.resize(cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY), (48, 48)).shape}")
+                    st.write(f"- Final processed shape: {processed_face.shape}")
                     st.write("---")
                 
                 # Filter by confidence threshold
@@ -362,17 +386,35 @@ def upload_mode(model, debug_mode=False):
                 # Predict emotion
                 prediction = model.predict_emotion(processed_face)
                 
-                # Debug: Print raw probabilities
+                # Debug: Print raw probabilities and class mapping
                 if debug_mode:
                     st.write("🔍 **Debug - Raw Probabilities:**")
-                    emotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
-                    for i, prob in enumerate(prediction['probabilities']):
-                        st.write(f"{emotions[i]}: {prob:.4f}")
+                    
+                    # 1) Print the raw predictions
+                    raw_preds = prediction['probabilities']
+                    st.write("🔍 Raw preds:", raw_preds.tolist())
+                    
+                    # 2) Print them alongside class names in order
+                    class_names = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+                    st.write("📊 **Class Mapping Check:**")
+                    for idx, name in enumerate(class_names):
+                        st.write(f"{name:>8} → {raw_preds[idx]*100:5.2f}%")
+                    
+                    # 3) Show the winner
+                    best_idx = np.argmax(raw_preds)
+                    st.write(f"🎯 **Prediction:** {class_names[best_idx]} ({raw_preds[best_idx]*100:.2f}%)")
                     
                     # Show what the model actually sees
                     st.write("🔍 **Model Input (48x48 grayscale):**")
                     processed_display = processed_face[0, :, :, 0]  # Remove batch and channel dims
                     st.image(processed_display, caption="What the model sees", use_column_width=True)
+                    
+                    # Show preprocessing steps
+                    st.write("🔧 **Preprocessing Steps:**")
+                    st.write(f"- Input shape: {face_img.shape}")
+                    st.write(f"- Grayscale shape: {cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY).shape}")
+                    st.write(f"- Resized shape: {cv2.resize(cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY), (48, 48)).shape}")
+                    st.write(f"- Final processed shape: {processed_face.shape}")
                     st.write("---")
                 
                 predictions.append(prediction)
