@@ -208,6 +208,10 @@ def main():
     # Debug mode
     debug_mode = st.sidebar.checkbox("🔧 Debug Mode", help="Show raw probabilities and model input")
     
+    # Model validation test
+    if st.sidebar.button("🧪 Test Model", help="Run a quick test to check if model is working correctly"):
+        test_model_health(model)
+    
     if mode == "📹 Real-time Webcam":
         real_time_mode(model, debug_mode)
     elif mode == "📁 Upload Image":
@@ -276,17 +280,39 @@ def real_time_mode(model, debug_mode=False):
                     best_idx = np.argmax(raw_preds)
                     st.write(f"🎯 **Prediction:** {class_names[best_idx]} ({raw_preds[best_idx]*100:.2f}%)")
                     
+                    # 4) Check for model collapse (always predicting same class)
+                    if raw_preds[best_idx] > 0.95:
+                        st.warning("⚠️ **MODEL COLLAPSE DETECTED:** Model is predicting >95% confidence for one class!")
+                        st.write("This suggests the model may have collapsed to one class during training.")
+                    
                     # Show what the model actually sees
                     st.write("🔍 **Model Input (48x48 grayscale):**")
                     processed_display = processed_face[0, :, :, 0]  # Remove batch and channel dims
                     st.image(processed_display, caption="What the model sees", use_column_width=True)
                     
-                    # Show preprocessing steps
-                    st.write("🔧 **Preprocessing Steps:**")
+                    # 5) Detailed preprocessing analysis
+                    st.write("🔧 **Preprocessing Analysis:**")
                     st.write(f"- Input shape: {face_img.shape}")
-                    st.write(f"- Grayscale shape: {cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY).shape}")
-                    st.write(f"- Resized shape: {cv2.resize(cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY), (48, 48)).shape}")
+                    st.write(f"- Input dtype: {face_img.dtype}")
+                    st.write(f"- Input range: [{face_img.min()}, {face_img.max()}]")
+                    
+                    gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+                    st.write(f"- Grayscale shape: {gray.shape}")
+                    st.write(f"- Grayscale range: [{gray.min()}, {gray.max()}]")
+                    
+                    resized = cv2.resize(gray, (48, 48))
+                    st.write(f"- Resized shape: {resized.shape}")
+                    st.write(f"- Resized range: [{resized.min()}, {resized.max()}]")
+                    
                     st.write(f"- Final processed shape: {processed_face.shape}")
+                    st.write(f"- Final processed range: [{processed_face.min():.4f}, {processed_face.max():.4f}]")
+                    
+                    # 6) Check if preprocessing matches training
+                    if processed_face.shape != (1, 48, 48, 1):
+                        st.error("❌ **PREPROCESSING MISMATCH:** Expected shape (1,48,48,1), got {processed_face.shape}")
+                    if processed_face.max() > 1.0 or processed_face.min() < 0.0:
+                        st.error("❌ **NORMALIZATION ERROR:** Values should be in [0,1] range")
+                    
                     st.write("---")
                 
                 # Filter by confidence threshold
@@ -404,17 +430,39 @@ def upload_mode(model, debug_mode=False):
                     best_idx = np.argmax(raw_preds)
                     st.write(f"🎯 **Prediction:** {class_names[best_idx]} ({raw_preds[best_idx]*100:.2f}%)")
                     
+                    # 4) Check for model collapse (always predicting same class)
+                    if raw_preds[best_idx] > 0.95:
+                        st.warning("⚠️ **MODEL COLLAPSE DETECTED:** Model is predicting >95% confidence for one class!")
+                        st.write("This suggests the model may have collapsed to one class during training.")
+                    
                     # Show what the model actually sees
                     st.write("🔍 **Model Input (48x48 grayscale):**")
                     processed_display = processed_face[0, :, :, 0]  # Remove batch and channel dims
                     st.image(processed_display, caption="What the model sees", use_column_width=True)
                     
-                    # Show preprocessing steps
-                    st.write("🔧 **Preprocessing Steps:**")
+                    # 5) Detailed preprocessing analysis
+                    st.write("🔧 **Preprocessing Analysis:**")
                     st.write(f"- Input shape: {face_img.shape}")
-                    st.write(f"- Grayscale shape: {cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY).shape}")
-                    st.write(f"- Resized shape: {cv2.resize(cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY), (48, 48)).shape}")
+                    st.write(f"- Input dtype: {face_img.dtype}")
+                    st.write(f"- Input range: [{face_img.min()}, {face_img.max()}]")
+                    
+                    gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+                    st.write(f"- Grayscale shape: {gray.shape}")
+                    st.write(f"- Grayscale range: [{gray.min()}, {gray.max()}]")
+                    
+                    resized = cv2.resize(gray, (48, 48))
+                    st.write(f"- Resized shape: {resized.shape}")
+                    st.write(f"- Resized range: [{resized.min()}, {resized.max()}]")
+                    
                     st.write(f"- Final processed shape: {processed_face.shape}")
+                    st.write(f"- Final processed range: [{processed_face.min():.4f}, {processed_face.max():.4f}]")
+                    
+                    # 6) Check if preprocessing matches training
+                    if processed_face.shape != (1, 48, 48, 1):
+                        st.error("❌ **PREPROCESSING MISMATCH:** Expected shape (1,48,48,1), got {processed_face.shape}")
+                    if processed_face.max() > 1.0 or processed_face.min() < 0.0:
+                        st.error("❌ **NORMALIZATION ERROR:** Values should be in [0,1] range")
+                    
                     st.write("---")
                 
                 predictions.append(prediction)
@@ -462,6 +510,82 @@ def upload_mode(model, debug_mode=False):
                     fig = create_emotion_chart(predictions)
                     if fig:
                         st.pyplot(fig)
+
+def test_model_health(model):
+    """
+    Test if the model is working correctly and not collapsed to one class
+    """
+    st.header("🧪 Model Health Test")
+    
+    # Create test inputs
+    test_inputs = []
+    test_names = []
+    
+    # Test 1: Random noise
+    random_input = np.random.rand(1, 48, 48, 1).astype('float32')
+    test_inputs.append(random_input)
+    test_names.append("Random Noise")
+    
+    # Test 2: All zeros
+    zero_input = np.zeros((1, 48, 48, 1), dtype='float32')
+    test_inputs.append(zero_input)
+    test_names.append("All Zeros")
+    
+    # Test 3: All ones
+    ones_input = np.ones((1, 48, 48, 1), dtype='float32')
+    test_inputs.append(ones_input)
+    test_names.append("All Ones")
+    
+    # Test 4: Gradient pattern
+    gradient = np.linspace(0, 1, 48*48).reshape(48, 48)
+    gradient_input = np.expand_dims(gradient, axis=[0, -1]).astype('float32')
+    test_inputs.append(gradient_input)
+    test_names.append("Gradient Pattern")
+    
+    st.write("**Testing model with different inputs to check for collapse:**")
+    
+    class_names = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+    results = []
+    
+    for i, (test_input, test_name) in enumerate(zip(test_inputs, test_names)):
+        st.write(f"\n**Test {i+1}: {test_name}**")
+        
+        # Get raw predictions
+        raw_preds = model.model.predict(test_input, verbose=0)[0]
+        
+        # Find the predicted class
+        best_idx = np.argmax(raw_preds)
+        confidence = raw_preds[best_idx]
+        
+        st.write(f"Raw predictions: {raw_preds.tolist()}")
+        st.write(f"Predicted: {class_names[best_idx]} ({confidence*100:.2f}%)")
+        
+        results.append({
+            'test': test_name,
+            'predicted_class': best_idx,
+            'confidence': confidence,
+            'predictions': raw_preds
+        })
+        
+        # Check for collapse
+        if confidence > 0.95:
+            st.warning(f"⚠️ **COLLAPSE DETECTED:** Model predicts {class_names[best_idx]} with {confidence*100:.1f}% confidence")
+    
+    # Analyze results
+    st.write("\n**📊 Analysis:**")
+    unique_predictions = set(r['predicted_class'] for r in results)
+    if len(unique_predictions) == 1:
+        st.error("❌ **MODEL COLLAPSE CONFIRMED:** Model predicts the same class for all inputs!")
+        st.write("This indicates the model has collapsed to one class during training.")
+        st.write("**Recommendation:** Retrain the model with better class balancing or lower learning rate.")
+    else:
+        st.success("✅ **Model appears to be working correctly** - predicts different classes for different inputs")
+    
+    # Show prediction distribution
+    st.write("\n**📈 Prediction Distribution:**")
+    for i, class_name in enumerate(class_names):
+        count = sum(1 for r in results if r['predicted_class'] == i)
+        st.write(f"{class_name}: {count}/{len(results)} tests")
 
 def model_info_mode():
     """
