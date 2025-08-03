@@ -205,121 +205,100 @@ def main():
 
 def real_time_mode(model):
     """
-    Real-time webcam emotion recognition
+    Real-time webcam emotion recognition using Streamlit's browser camera
     """
     st.header("📹 Real-time Emotion Recognition")
-    
-    # Check if we're in a cloud environment
-    import os
-    is_cloud = os.environ.get('STREAMLIT_SERVER_HEADLESS', 'false').lower() == 'true'
-    
-    if is_cloud:
-        st.warning("⚠️ Webcam access is limited in cloud environments.")
-        st.info("💡 Use the 'Upload Image' mode for testing emotion recognition.")
-        
-        # Demo mode for cloud
-        if st.button("🎭 Try Demo Mode", type="primary"):
-            st.success("🎉 Demo mode activated!")
-            st.info("This would show emotion recognition on sample images.")
-            return
     
     # Camera settings
     col1, col2 = st.columns(2)
     
     with col1:
-        camera_index = st.selectbox("Camera Index", [0, 1, 2], help="Select your webcam")
-    
-    with col2:
         confidence_threshold = st.slider("Confidence Threshold", 0.0, 1.0, 0.5, 0.01)
     
-    # Start camera
-    if st.button("🎥 Start Camera", type="primary"):
-        st.info("Camera started! Press 'q' to quit.")
+    with col2:
+        st.info("📷 Click the camera button below to start")
+    
+    # Use Streamlit's browser camera input
+    img_bytes = st.camera_input("📷 Look into your webcam for emotion recognition")
+    
+    if img_bytes is not None:
+        # Convert camera input to OpenCV format
+        file_bytes = np.asarray(bytearray(img_bytes.read()), dtype=np.uint8)
+        frame = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         
-        cap = cv2.VideoCapture(camera_index)
+        # Detect faces
+        faces = detect_faces(frame)
         
-        # Check if camera opened successfully
-        if not cap.isOpened():
-            st.error("❌ Cannot access camera. This feature may not work in cloud environments.")
-            st.info("💡 Try the 'Upload Image' mode instead for testing emotion recognition.")
-            return
-        
-        # Create placeholders for display
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            video_placeholder = st.empty()
-        
-        with col2:
-            emotion_placeholder = st.empty()
-            chart_placeholder = st.empty()
-        
-        try:
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    st.error("Failed to capture video")
-                    break
+        if len(faces) == 0:
+            st.warning("👤 No faces detected. Please position your face in the camera view.")
+        else:
+            st.success(f"✅ Detected {len(faces)} face(s)!")
+            
+            # Process each face
+            predictions = []
+            for (x, y, w, h) in faces:
+                # Extract face region
+                face_img = frame[y:y+h, x:x+w]
                 
-                # Detect faces
-                faces = detect_faces(frame)
+                # Preprocess face
+                processed_face = preprocess_face_image(face_img)
                 
-                if len(faces) > 0:
-                    predictions = []
+                # Predict emotion
+                prediction = model.predict_emotion(processed_face)
+                
+                # Filter by confidence threshold
+                if prediction['confidence'] >= confidence_threshold:
+                    predictions.append(prediction)
+            
+            # Display results
+            if predictions:
+                # Draw predictions on frame
+                result_frame = draw_emotion_on_image(frame.copy(), faces, predictions)
+                
+                # Show results in columns
+                col1, col2 = st.columns([1, 1])
+                
+                with col1:
+                    st.subheader("📸 Captured Image with Detections")
+                    st.image(result_frame, channels="BGR", use_column_width=True)
+                
+                with col2:
+                    st.subheader("🎭 Emotion Analysis")
                     
-                    for (x, y, w, h) in faces:
-                        # Extract face region
-                        face_img = frame[y:y+h, x:x+w]
+                    for i, pred in enumerate(predictions):
+                        st.markdown(f"**Face {i+1}:**")
                         
-                        # Preprocess face
-                        processed_face = preprocess_face_image(face_img)
+                        # Emotion display
+                        emotion_color = {
+                            'Angry': '#ff6b6b', 'Disgust': '#4ecdc4', 'Fear': '#45b7d1',
+                            'Happy': '#96ceb4', 'Sad': '#feca57', 'Surprise': '#ff9ff3', 'Neutral': '#54a0ff'
+                        }
                         
-                        # Predict emotion
-                        prediction = model.predict_emotion(processed_face)
+                        st.markdown(f"""
+                        <div class="emotion-display" style="background-color: {emotion_color.get(pred['emotion'], '#e0e0e0')}">
+                            {pred['emotion']} ({pred['confidence']:.2%})
+                        </div>
+                        """, unsafe_allow_html=True)
                         
-                        # Filter by confidence threshold
-                        if prediction['confidence'] >= confidence_threshold:
-                            predictions.append(prediction)
+                        # Confidence bar
+                        confidence = pred['confidence']
+                        st.markdown(f"**Confidence:** {confidence:.2%}")
+                        st.markdown(f"""
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: {confidence*100}%"></div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        st.markdown("---")
                     
-                    # Draw predictions on frame
+                    # Emotion chart
                     if predictions:
-                        frame = draw_emotion_on_image(frame, faces, predictions)
-                        
-                        # Display emotion info
-                        with emotion_placeholder.container():
-                            st.markdown("### 🎭 Detected Emotions")
-                            for i, pred in enumerate(predictions):
-                                emotion_color = {
-                                    'Angry': '#ff6b6b', 'Disgust': '#4ecdc4', 'Fear': '#45b7d1',
-                                    'Happy': '#96ceb4', 'Sad': '#feca57', 'Surprise': '#ff9ff3', 'Neutral': '#54a0ff'
-                                }
-                                
-                                st.markdown(f"""
-                                <div class="emotion-display" style="background-color: {emotion_color.get(pred['emotion'], '#e0e0e0')}">
-                                    {pred['emotion']} ({pred['confidence']:.2%})
-                                </div>
-                                """, unsafe_allow_html=True)
-                        
-                        # Display emotion chart
-                        with chart_placeholder.container():
-                            fig = create_emotion_chart(predictions)
-                            if fig:
-                                st.pyplot(fig)
-                
-                # Display video frame
-                with video_placeholder.container():
-                    st.image(frame, channels="BGR", use_column_width=True)
-                
-                # Check for quit
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-                    
-        finally:
-            try:
-                cap.release()
-                cv2.destroyAllWindows()
-            except:
-                pass  # Ignore errors in cleanup
+                        fig = create_emotion_chart(predictions)
+                        if fig:
+                            st.pyplot(fig)
+            else:
+                st.warning("⚠️ No emotions detected above the confidence threshold.")
+                st.info("💡 Try adjusting the confidence threshold or repositioning your face.")
 
 def upload_mode(model):
     """
